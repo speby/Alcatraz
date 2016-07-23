@@ -1,6 +1,4 @@
 //
-// ATZVersion.h
-//
 // Copyright (c) 2014 Marin Usalj | supermar.in
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,10 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef Alcatraz_Version_h
-#define Alcatraz_Version_h
+#import <Cocoa/Cocoa.h>
 
-#define ATZ_VERSION "1.0.9"
+@interface ATZSegmentedCell : NSSegmentedCell
 
-#endif
-
+@end

@@ -33,12 +33,12 @@
 + (void)update {
     ATZPackage *alcatraz = [[ATZAlcatrazPackage alloc] initWithDictionary:@{
         @"name": @"Alcatraz",
-        @"url": @"https://github.com/supermarin/Alcatraz",
+        @"url": @"https://github.com/alcatraz/Alcatraz",
         @"description": @"Self updating installer",
         @"branch": @"deploy"
     }];
-    
-    [alcatraz updateWithProgress:^(NSString *proggressMessage, CGFloat progress){} completion:^(NSError *failure) {
+
+    [alcatraz updateWithProgress:^(NSString *progressMessage, CGFloat progress){} completion:^(NSError *failure) {
         if (failure)
             NSLog(@"Alcatraz update failed! %@", failure);
     }];

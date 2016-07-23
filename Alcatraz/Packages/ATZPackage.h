@@ -39,22 +39,24 @@ typedef NS_ENUM(NSUInteger, ATZPackageWebsiteType) {
 @property (strong, nonatomic) NSString *remotePath;
 @property (strong, nonatomic) NSString *revision;
 @property (strong, nonatomic) NSString *screenshotPath;
-@property (strong, nonatomic) NSString *iconName;
 @property (nonatomic, readonly) NSString *website;
 @property (nonatomic, readonly) NSString *extension;
+@property (nonatomic, readonly) BOOL isBlacklisted;
 @property (nonatomic, readonly) BOOL isInstalled;
 @property (nonatomic, assign)   BOOL requiresRestart;
 @property (nonatomic, readonly) ATZPackageWebsiteType websiteType;
 
 - (id)initWithDictionary:(NSDictionary *)dict;
 
-- (void)installWithProgress:(void(^)(NSString *proggressMessage, CGFloat progress))progress
+- (void)installWithProgress:(void(^)(NSString *progressMessage, CGFloat progress))progress
                  completion:(void(^)(NSError *failure))completion;
 
-- (void)updateWithProgress:(void(^)(NSString *proggressMessage, CGFloat progress))progress
+- (void)updateWithProgress:(void(^)(NSString *progressMessage, CGFloat progress))progress
                 completion:(void(^)(NSError *failure))completion;
 
 - (void)removeWithCompletion:(void(^)(NSError *failure))completion;
+
+- (void)whitelistWithCompletion:(void(^)(NSError *failure))completion;
 
 
 #pragma mark - Abstract

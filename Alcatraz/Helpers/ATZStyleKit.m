@@ -22,63 +22,115 @@
 // THE SOFTWARE.
 
 #import "ATZStyleKit.h"
+#import "ATZPlugin.h"
+#import "ATZFillableButton.h"
 
+static NSString *const BUTTON_TITLE_INSTALL = @"INSTALL";
+static NSString *const BUTTON_TITLE_REMOVE = @"REMOVE";
+static NSString *const BUTTON_TITLE_BLOCKED = @"BLOCKED";
 
 @implementation ATZStyleKit
 
-#pragma mark Initialization
+#pragma mark ATZFillableButton styling
 
-+ (void)initialize
-{
++ (void)updateButton:(ATZFillableButton *)fillableButton forPackageState:(ATZPackage *)package animated:(BOOL)animated {
+    if ([package isInstalled]) {
+        if ([package isBlacklisted]) {
+            [fillableButton setTitle:BUTTON_TITLE_BLOCKED];
+            [fillableButton setButtonStyle:ATZFillableButtonStyleBlocked];
+            [fillableButton setFillRatio:0 animated:animated];
+        }
+        else {
+            [fillableButton setTitle:BUTTON_TITLE_REMOVE];
+            [fillableButton setButtonStyle:ATZFillableButtonStyleRemove];
+            [fillableButton setFillRatio:1 animated:animated];
+        }
+    }
+    else {
+        [fillableButton setTitle:BUTTON_TITLE_INSTALL];
+        [fillableButton setButtonStyle:ATZFillableButtonStyleInstall];
+        [fillableButton setFillRatio:0 animated:animated];
+    }
 }
 
 #pragma mark Drawing Methods
 
-+ (void)drawFillableButtonWithButtonText: (NSString*)buttonText fillRatio: (CGFloat)fillRatio buttonWidth: (CGFloat)buttonWidth buttonType: (NSString*)buttonType
-{
-    //// General Declarations
-    CGContextRef context = (CGContextRef)NSGraphicsContext.currentContext.graphicsPort;
++ (void)drawFillableButtonWithText:(NSString*)text fillColor:(NSColor *)fillColor backgroundColor:(NSColor *)backgroundColor fillRatio:(float)fillRatio size:(CGSize)size {
+    NSParameterAssert(0.0f <= fillRatio && fillRatio <= 1.0f);
 
-    //// Color Declarations
-    NSColor* buttonColor = [NSColor colorWithCalibratedRed: 0.311 green: 0.699 blue: 0.37 alpha: 1];
-    NSColor* clear = [NSColor colorWithCalibratedRed: 1 green: 1 blue: 1 alpha: 0];
-    NSColor* white = [NSColor colorWithCalibratedRed: 1 green: 1 blue: 1 alpha: 1];
-    NSColor* gray = [NSColor colorWithCalibratedRed: 0.378 green: 0.378 blue: 0.378 alpha: 1];
-    NSColor* removeButtonColor = [NSColor colorWithCalibratedRed: 0.845 green: 0.236 blue: 0.362 alpha: 1];
+    CGFloat cornerRadius = 2.0f;
+    CGFloat borderWidth = 1.0f;
+    CGRect bounds = CGRectMake(0, 0, size.width, size.height);
+    bounds = CGRectInset(bounds, borderWidth, borderWidth);
+    bounds = CGRectIntegral(bounds);
+    CGFloat fillWidth = bounds.size.width * fillRatio;
 
-    //// Variable Declarations
-    CGFloat computedFillWidth = fillRatio * buttonWidth * 0.01;
-    CGFloat fillWidth = computedFillWidth < 0 ? 0 : (computedFillWidth > buttonWidth ? buttonWidth : computedFillWidth);
-    NSColor* buttonTextColor = fillRatio >= 40 ? white : ([buttonType isEqualToString: @"install"] ? buttonColor : gray);
-    NSColor* buttonStrokeColor = [buttonType isEqualToString: @"install"] ? (fillRatio >= 100 ? removeButtonColor : buttonColor) : gray;
-    NSColor* buttonFillColor = fillWidth <= 8 ? clear : (fillRatio >= 100 ? removeButtonColor : buttonStrokeColor);
+    //// Fill drawing
+    CGRect fillRect = bounds;
+    fillRect.size.width = fillWidth;
+    NSBezierPath* fillPath = [NSBezierPath bezierPathWithRoundedRect:fillRect xRadius:cornerRadius yRadius:cornerRadius];
+    [fillColor setFill];
+    [fillPath fill];
 
-    //// borderRect Drawing
-    NSBezierPath* borderRectPath = [NSBezierPath bezierPathWithRoundedRect: NSMakeRect(1, 1, (buttonWidth - 3), 25) xRadius: 2 yRadius: 2];
-    [buttonStrokeColor setStroke];
-    [borderRectPath setLineWidth: 1];
-    [borderRectPath stroke];
-
-
-    //// fillRect Drawing
-    [NSGraphicsContext saveGraphicsState];
-    CGContextTranslateCTM(context, 1, 2);
-
-    NSBezierPath* fillRectPath = [NSBezierPath bezierPathWithRoundedRect: NSMakeRect(0, -1.5, (fillWidth - 3), 25) xRadius: 2 yRadius: 2];
-    [buttonFillColor setFill];
-    [fillRectPath fill];
-
-    [NSGraphicsContext restoreGraphicsState];
-
+    //// Border drawing
+    NSBezierPath* borderPath = [NSBezierPath bezierPathWithRoundedRect:bounds xRadius:cornerRadius yRadius:cornerRadius];
+    [fillColor setStroke];
+    [borderPath setLineWidth:borderWidth];
+    [borderPath stroke];
 
     //// Text Drawing
-    NSRect textRect = NSMakeRect(1, -2, buttonWidth, 20);
+    // Drawing the right part of the text with the fill color (eg. green)
+    NSRect primaryColorClippingRect = bounds;
+    primaryColorClippingRect.origin.x += fillWidth;
+    primaryColorClippingRect.size.width -= fillWidth;
+    [self drawText:text withColor:fillColor centeredInRect:bounds clippedToRect:primaryColorClippingRect];
+
+    // Drawing the left part of the text with the background color (eg. white)
+    NSRect secondaryColorClippingRect = bounds;
+    secondaryColorClippingRect.size.width = fillWidth;
+    [self drawText:text withColor:backgroundColor centeredInRect:bounds clippedToRect:secondaryColorClippingRect];
+}
+
++ (void)drawText:(NSString*)text withColor:(NSColor *)color centeredInRect:(NSRect)rect clippedToRect:(NSRect)clippingRect {
+    CGContextRef context = (CGContextRef)NSGraphicsContext.currentContext.graphicsPort;
+
+    [NSGraphicsContext saveGraphicsState];
+
+    CGPathRef clippingPath = CGPathCreateWithRect(clippingRect, NULL);
+    CGContextAddPath(context, clippingPath);
+    CGContextClip(context);
+
     NSMutableParagraphStyle* textStyle = NSMutableParagraphStyle.defaultParagraphStyle.mutableCopy;
     textStyle.alignment = NSCenterTextAlignment;
+    textStyle.lineBreakMode = NSLineBreakByClipping;
 
-    NSDictionary* textFontAttributes = @{NSFontAttributeName: [NSFont fontWithName: @"HelveticaNeue-Light" size: 12], NSForegroundColorAttributeName: buttonTextColor, NSParagraphStyleAttributeName: textStyle};
+    NSDictionary* textFontAttributes = @{
+        NSFontAttributeName:[NSFont fontWithName:@"HelveticaNeue-Light" size:12],
+        NSForegroundColorAttributeName:color,
+        NSParagraphStyleAttributeName:textStyle,
+    };
 
-    [buttonText drawInRect: NSOffsetRect(textRect, 0, 4) withAttributes: textFontAttributes];
+    // Center the text vertically
+    // A lot more complicated to get right than what I expected
+    // See http://www.gameaid.org/2012/11/vertically-align-an-nsstring-in-an-nsrect/
+    NSTextStorage *textStorage = [[NSTextStorage alloc] initWithString:text];
+    [textStorage addAttributes:textFontAttributes range:NSMakeRange(0, text.length)];
+
+    NSLayoutManager *layoutManager = [[NSLayoutManager alloc] init];
+    NSTextContainer *textContainer = [[NSTextContainer alloc] initWithContainerSize:rect.size];
+    textContainer.lineFragmentPadding = 0;
+
+    [layoutManager addTextContainer:textContainer];
+    [textStorage addLayoutManager:layoutManager];
+
+    NSRange glyphRange = [layoutManager glyphRangeForTextContainer:textContainer];
+    CGRect textUsedRect = [layoutManager usedRectForTextContainer:textContainer];
+    CGPoint drawingPoint = CGPointMake(rect.origin.x, rect.origin.y + (rect.size.height - textUsedRect.size.height) / 2);
+
+    // Finally draw the text
+    [layoutManager drawGlyphsForGlyphRange:glyphRange atPoint:drawingPoint];
+
+    [NSGraphicsContext restoreGraphicsState];
 }
 
 @end

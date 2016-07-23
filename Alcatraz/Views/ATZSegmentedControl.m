@@ -20,71 +20,42 @@
 // THE SOFTWARE.
 
 #import "ATZSegmentedControl.h"
-#import "NSColor+Alcatraz.h"
+#import "ATZSegmentedCell.h"
 
 @implementation ATZSegmentedControl
 
-static NSInteger const ATZSegmentRoundedMajorVersion = 10;
-static NSInteger const ATZSegmentRoundedMinorVersion = 9;
++ (Class)cellClass {
+    return [ATZSegmentedCell class];
+}
 
-- (void)drawRect:(NSRect)dirtyRect {
-    CGFloat totalWidth = 0;
-    for (int i = 0; i < self.segmentCount; i++) {
-        NSString* text = [self labelForSegment:i];
-        NSMutableDictionary* attributes = [NSMutableDictionary dictionaryWithDictionary:[self defaultAttributes]];
-        CGFloat segmentWidth = [self widthForSegment:i withAttributes:attributes];
-        NSRect rect = NSMakeRect(totalWidth, 0, segmentWidth, self.bounds.size.height);
-        NSSize textSize = [text sizeWithAttributes:attributes];
-        if ([self isSelectedForSegment:i]) {
-            attributes[NSForegroundColorAttributeName] = [NSColor whiteColor];
-            NSRect backgroundRect = rect;
-            backgroundRect.origin.x = rect.origin.x + (rect.size.width - textSize.width - 10) / 2.f;
-            backgroundRect.origin.y = 3;
-            backgroundRect.size.width = segmentWidth;
-            backgroundRect.size.height = textSize.height + 4;
-            CGFloat cornerRadius = [self shouldUseRoundedPillStyle] ? floorf(backgroundRect.size.height/2) : 4;
-            NSBezierPath *textViewSurround = [NSBezierPath bezierPathWithRoundedRect:backgroundRect xRadius:cornerRadius yRadius:cornerRadius];
-            [[NSColor selectedItemColor] setFill];
-            [textViewSurround fill];
-        }
-        rect.origin.y = (rect.size.height - textSize.height) / 2.f - 1.f;
-        [text drawInRect:rect withAttributes:attributes];
-        totalWidth += segmentWidth;
+// The custom cellClass will not be loaded properly if the view is init'd from IB.
+// https://mikeash.com/pyblog/custom-nscells-done-right.html
+- (instancetype)initWithCoder:(NSCoder *)origCoder
+{
+    NSKeyedUnarchiver *coder = (NSKeyedUnarchiver *)origCoder;
+
+    // gather info about the superclass's cell and save the archiver's old mapping
+    Class superCell = [[self superclass] cellClass];
+    NSString *oldClassName = NSStringFromClass(superCell);
+    Class oldClass = [coder classForClassName:oldClassName];
+    if (!oldClass) {
+        oldClass = superCell;
     }
-}
 
-- (NSDictionary*)defaultAttributes {
-    NSFont* font = [NSFont fontWithName:@"HelveticaNeue" size:11.f];
-    NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    // override what comes out of the unarchiver
+    [coder setClass:[[self class] cellClass] forClassName:oldClassName];
 
-    [style setAlignment:NSCenterTextAlignment];
-    return @{
-        NSFontAttributeName: font,
-        NSParagraphStyleAttributeName: style,
-        NSKernAttributeName: @(0.3)
-    };
-}
+    // unarchive
+    self = [super initWithCoder:coder];
+    if (!self) {
+        return nil;
+    }
 
-- (CGFloat)widthForSegment:(NSInteger)segment withAttributes:(NSDictionary*)attributes {
-    NSString* text = [self labelForSegment:segment];
-    NSSize textSize = [text sizeWithAttributes:attributes];
-    return textSize.width + 10;
-}
+    // set it back
+    [coder setClass:oldClass forClassName:oldClassName];
 
-- (CGFloat)widthForSegment:(NSInteger)segment {
-    return [self widthForSegment:segment withAttributes:[self defaultAttributes]];
-}
 
-- (NSSize)intrinsicContentSize {
-    NSSize defaultSize = [super intrinsicContentSize];
-    defaultSize.height *= 1.2;
-    return defaultSize;
-}
-
-- (BOOL)shouldUseRoundedPillStyle {
-    NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
-    return version.majorVersion <= ATZSegmentRoundedMajorVersion
-        && version.minorVersion <= ATZSegmentRoundedMinorVersion;
+    return self;
 }
 
 @end
